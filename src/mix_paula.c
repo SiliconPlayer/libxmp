@@ -185,12 +185,48 @@ MIXER(stereoout_mono_a500_filter)
 	LOOP { PAULA_SIMULATION(1); MIX_STEREO(); }
 }
 
+MIXER(monoout_mono_a1200)
+{
+	VAR_PAULA_MONO(int8);
+
+	LOOP { PAULA_SIMULATION(2); MIX_MONO(); }
+}
+
+MIXER(monoout_mono_a1200_filter)
+{
+	VAR_PAULA_MONO(int8);
+
+	LOOP { PAULA_SIMULATION(3); MIX_MONO(); }
+}
+
+MIXER(stereoout_mono_a1200)
+{
+	VAR_PAULA(int8);
+
+	LOOP { PAULA_SIMULATION(2); MIX_STEREO(); }
+}
+
+MIXER(stereoout_mono_a1200_filter)
+{
+	VAR_PAULA(int8);
+
+	LOOP { PAULA_SIMULATION(3); MIX_STEREO(); }
+}
+
 const MIXER_FP libxmp_a500_mixers[] = {
 	LIST_MIX_FUNCTIONS_PAULA(a500)
 };
 
 const MIXER_FP libxmp_a500led_mixers[] = {
 	LIST_MIX_FUNCTIONS_PAULA(a500_filter)
+};
+
+const MIXER_FP libxmp_a1200_mixers[] = {
+	LIST_MIX_FUNCTIONS_PAULA(a1200)
+};
+
+const MIXER_FP libxmp_a1200led_mixers[] = {
+	LIST_MIX_FUNCTIONS_PAULA(a1200_filter)
 };
 
 #endif /* LIBXMP_PAULA_SIMULATOR */

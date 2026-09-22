@@ -45,6 +45,8 @@ extern const MIXER_FP libxmp_spline_mixers[];
 #ifdef LIBXMP_PAULA_SIMULATOR
 extern const MIXER_FP libxmp_a500_mixers[];
 extern const MIXER_FP libxmp_a500led_mixers[];
+extern const MIXER_FP libxmp_a1200_mixers[];
+extern const MIXER_FP libxmp_a1200led_mixers[];
 #endif
 
 LIBXMP_END_DECLS

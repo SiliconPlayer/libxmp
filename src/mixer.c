@@ -560,12 +560,12 @@ void libxmp_mixer_softmixer(struct context_data *ctx)
 	}
 
 #ifdef LIBXMP_PAULA_SIMULATOR
-	if (p->flags & XMP_FLAGS_A500) {
+	if (p->flags & (XMP_FLAGS_A500 | XMP_FLAGS_A1200)) {
 		if (IS_AMIGA_MOD()) {
-			if (p->filter) {
-				mixerset = libxmp_a500led_mixers;
+			if (p->flags & XMP_FLAGS_A1200) {
+				mixerset = p->filter ? libxmp_a1200led_mixers : libxmp_a1200_mixers;
 			} else {
-				mixerset = libxmp_a500_mixers;
+				mixerset = p->filter ? libxmp_a500led_mixers : libxmp_a500_mixers;
 			}
 		}
 	}

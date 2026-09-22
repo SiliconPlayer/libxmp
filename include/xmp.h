@@ -111,6 +111,7 @@ extern "C" {
 #define XMP_FLAGS_FX9BUG	(1 << 1) /* Emulate FX9 bug */
 #define XMP_FLAGS_FIXLOOP	(1 << 2) /* Emulate sample loop bug */
 #define XMP_FLAGS_A500		(1 << 3) /* Use Paula mixer in Amiga modules */
+#define XMP_FLAGS_A1200		(1 << 4) /* Use Amiga 1200 mixer in Amiga modules */
 
 /* player modes */
 #define XMP_MODE_AUTO		0	/* Autodetect mode (default) */
@@ -129,6 +130,8 @@ extern "C" {
 #define XMP_MIXER_STANDARD	0	/* Standard mixer */
 #define XMP_MIXER_A500		1	/* Amiga 500 */
 #define XMP_MIXER_A500F		2	/* Amiga 500 with led filter */
+#define XMP_MIXER_A1200		3	/* Amiga 1200 */
+#define XMP_MIXER_A1200F	4	/* Amiga 1200 with led filter */
 
 /* sample flags */
 #define XMP_SMPCTL_SKIP		(1 << 0) /* Don't load samples */

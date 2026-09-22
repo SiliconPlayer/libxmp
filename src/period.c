@@ -172,7 +172,7 @@ double libxmp_note_to_period(struct context_data *ctx, int n, int f, double adj)
 	struct player_data *p = &ctx->p;
 
 	/* If mod replayer, modrng and Amiga mixing are active */
-	if (p->flags & XMP_FLAGS_A500) {
+	if (p->flags & (XMP_FLAGS_A500 | XMP_FLAGS_A1200)) {
 		if (IS_AMIGA_MOD()) {
 			return libxmp_note_to_period_pt(n, f);
 		}

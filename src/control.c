@@ -663,13 +663,13 @@ int xmp_get_player__(xmp_context opaque, int parm)
 		break;
 	case XMP_PLAYER_MIXER_TYPE:
 		ret = XMP_MIXER_STANDARD;
-		if (p->flags & XMP_FLAGS_A500) {
+		if (p->flags & (XMP_FLAGS_A500 | XMP_FLAGS_A1200)) {
 			if (IS_AMIGA_MOD()) {
 #ifdef LIBXMP_PAULA_SIMULATOR
-				if (p->filter) {
-					ret = XMP_MIXER_A500F;
+				if (p->flags & XMP_FLAGS_A1200) {
+					ret = p->filter ? XMP_MIXER_A1200F : XMP_MIXER_A1200;
 				} else {
-					ret = XMP_MIXER_A500;
+					ret = p->filter ? XMP_MIXER_A500F : XMP_MIXER_A500;
 				}
 #endif
 			}
