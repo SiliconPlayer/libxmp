@@ -670,6 +670,14 @@ struct mixer_data {
 	int dtleft;		/* anticlick control, left channel */
 	int bidir_adjust;	/* adjustment for IT bidirectional loops */
 	double pbase;		/* period base */
+
+	/* SiliconPlayer channel scope (lazily allocated) */
+#define XMP_SCOPE_RING_FRAMES 32768
+	float *scope_ring;	/* per-channel rings, XMP_MAX_CHANNELS * XMP_SCOPE_RING_FRAMES */
+	int32 *scope_scratch;	/* voice mix before-snapshot, total_size int32s */
+	int scope_write;	/* ring write position in frames (shared, channels are tick-aligned) */
+	int scope_available;	/* frames captured so far, capped at ring size */
+	int scope_enabled;
 };
 
 struct rng_state {

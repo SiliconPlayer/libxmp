@@ -468,6 +468,60 @@ static void libxmp_mixer_prepare(struct context_data *ctx)
 	memset(s->buf32, 0, bytelen);
 }
 
+/* SiliconPlayer channel scope: every channel ring has its tick window
+ * zeroed before mixing; each voice's buf32 diff is accumulated at its
+ * tick offset, keeping channels time-aligned even with stacked voices. */
+
+static float scope_sample_scale(const struct mixer_data *s)
+{
+	/* Every downmix path normalizes to buf32 * 2^(amplify - 27). */
+	return (float)ldexp(1.0, s->amplify - 27);
+}
+
+static void scope_begin_tick(struct mixer_data *s)
+{
+	int ch;
+	int count = MIN(s->ticksize, XMP_SCOPE_RING_FRAMES);
+	int first = MIN(count, XMP_SCOPE_RING_FRAMES - s->scope_write);
+
+	for (ch = 0; ch < XMP_MAX_CHANNELS; ch++) {
+		float *ring = s->scope_ring + (size_t)ch * XMP_SCOPE_RING_FRAMES;
+		memset(ring + s->scope_write, 0, first * sizeof(float));
+		if (count > first)
+			memset(ring, 0, (count - first) * sizeof(float));
+	}
+}
+
+static void scope_accumulate(struct mixer_data *s, int chn, int frame_pos,
+			     const int32 *before, const int32 *after,
+			     int frames, float scale)
+{
+	float *ring = s->scope_ring + (size_t)chn * XMP_SCOPE_RING_FRAMES;
+	const int stereo = (~s->format & XMP_FORMAT_MONO) != 0;
+	int idx = frame_pos % XMP_SCOPE_RING_FRAMES;
+	int i;
+
+	for (i = 0; i < frames; i++) {
+		float v;
+		if (stereo) {
+			const int64 dl = (int64)after[0] - before[0];
+			const int64 dr = (int64)after[1] - before[1];
+			v = (float)(dl + dr) * (0.5f * scale);
+			before += 2;
+			after += 2;
+		} else {
+			v = (float)((int64)*after - *before) * scale;
+			before++;
+			after++;
+		}
+		v += ring[idx];
+		CLAMP(v, -1.0f, 1.0f);
+		ring[idx] = v;
+		if (++idx >= XMP_SCOPE_RING_FRAMES)
+			idx = 0;
+	}
+}
+
 /* Fill the output buffer calling one of the handlers. The buffer contains
  * sound for one tick (a PAL frame or 1/50s for standard vblank-timed mods)
  */
@@ -488,6 +542,8 @@ void libxmp_mixer_softmixer(struct context_data *ctx)
 	int32 *buf_pos;
 	MIXER_FP  mix_fn;
 	const MIXER_FP *mixerset;
+	int scope, scope_base = 0;
+	float scope_scale = 0.0f;
 
 	switch (s->interp) {
 	case XMP_INTERP_NEAREST:
@@ -523,6 +579,14 @@ void libxmp_mixer_softmixer(struct context_data *ctx)
 #endif
 
 	libxmp_mixer_prepare(ctx);
+
+	scope = s->scope_enabled && s->scope_ring != NULL &&
+		s->scope_scratch != NULL;
+	if (scope) {
+		scope_begin_tick(s);
+		scope_base = s->scope_write;
+		scope_scale = scope_sample_scale(s);
+	}
 
 	for (voc = 0; voc < p->virt.maxvoc; voc++) {
 		int c5spd, rampsize, delta_l, delta_r;
@@ -682,8 +746,19 @@ void libxmp_mixer_softmixer(struct context_data *ctx)
 					}
 
 					if (mix_fn != NULL) {
-						mix_fn(vi, buf_pos, samples,
-							vol_l >> 8, vol_r >> 8, step_dir * (1 << SMIX_SHIFT), rsize, delta_l, delta_r);
+						if (scope && vi->chn < XMP_MAX_CHANNELS) {
+							memcpy(s->scope_scratch, buf_pos,
+							       (size_t)mix_size * sizeof(int32));
+							mix_fn(vi, buf_pos, samples,
+								vol_l >> 8, vol_r >> 8, step_dir * (1 << SMIX_SHIFT), rsize, delta_l, delta_r);
+							scope_accumulate(s, vi->chn,
+								scope_base + (s->ticksize - size),
+								s->scope_scratch, buf_pos,
+								samples, scope_scale);
+						} else {
+							mix_fn(vi, buf_pos, samples,
+								vol_l >> 8, vol_r >> 8, step_dir * (1 << SMIX_SHIFT), rsize, delta_l, delta_r);
+						}
 					}
 
 					buf_pos += mix_size;
@@ -759,6 +834,13 @@ void libxmp_mixer_softmixer(struct context_data *ctx)
 		reset_sample_wraparound(&loop_data);
 		vi->old_vl = vol_l;
 		vi->old_vr = vol_r;
+	}
+
+	if (scope) {
+		s->scope_write = (s->scope_write + s->ticksize) %
+			XMP_SCOPE_RING_FRAMES;
+		s->scope_available = MIN(s->scope_available + s->ticksize,
+			XMP_SCOPE_RING_FRAMES);
 	}
 
 	/* Render final frame */
@@ -1112,4 +1194,12 @@ void libxmp_mixer_off(struct context_data *ctx)
 	free(s->buf32);
 	s->buf32 = NULL;
 	s->buffer = NULL;
+
+	free(s->scope_ring);
+	free(s->scope_scratch);
+	s->scope_ring = NULL;
+	s->scope_scratch = NULL;
+	s->scope_enabled = 0;
+	s->scope_write = 0;
+	s->scope_available = 0;
 }

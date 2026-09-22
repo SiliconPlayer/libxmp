@@ -389,6 +389,41 @@ int xmp_channel_vol(xmp_context opaque, int chn, int vol)
 	return ret;
 }
 
+/* SiliconPlayer: copy the newest count frames of a channel's scope ring,
+ * oldest first, zero-padding the front when history is short. */
+int xmp_get_channel_scope(xmp_context opaque, int chn, float *dest, int count)
+{
+	struct context_data *ctx = (struct context_data *)opaque;
+	struct mixer_data *s = &ctx->s;
+	const float *ring;
+	int avail, pad, read, first;
+
+	if (ctx->state < XMP_STATE_PLAYING || dest == NULL || count <= 0 ||
+	    chn < 0 || chn >= XMP_MAX_CHANNELS)
+		return 0;
+
+	if (s->scope_ring == NULL) {
+		memset(dest, 0, (size_t)count * sizeof(float));
+		return count;
+	}
+
+	avail = MIN(s->scope_available, count);
+	pad = count - avail;
+	if (pad > 0)
+		memset(dest, 0, (size_t)pad * sizeof(float));
+
+	ring = s->scope_ring + (size_t)chn * XMP_SCOPE_RING_FRAMES;
+	read = s->scope_write - avail;
+	if (read < 0)
+		read += XMP_SCOPE_RING_FRAMES;
+	first = MIN(avail, XMP_SCOPE_RING_FRAMES - read);
+	memcpy(dest + pad, ring + read, (size_t)first * sizeof(float));
+	if (avail > first)
+		memcpy(dest + pad + first, ring, (size_t)(avail - first) * sizeof(float));
+
+	return count;
+}
+
 #ifdef USE_VERSIONED_SYMBOLS
 LIBXMP_BEGIN_DECLS /* no name-mangling */
 LIBXMP_EXPORT_VERSIONED extern int xmp_set_player_v40__(xmp_context, int, int) LIBXMP_ATTRIB_SYMVER("xmp_set_player@XMP_4.0");
@@ -506,6 +541,36 @@ int xmp_set_player__(xmp_context opaque, int parm, int val)
 	case XMP_PLAYER_VOICES:
 		s->numvoc = val;
 		break;
+
+	/* SiliconPlayer */
+	case XMP_PLAYER_CHANNEL_SCOPE:
+		if (val) {
+			if (s->scope_ring == NULL) {
+				s->scope_ring = (float *)calloc(
+					(size_t)XMP_MAX_CHANNELS * XMP_SCOPE_RING_FRAMES,
+					sizeof(float));
+				s->scope_scratch = (int32 *)calloc(
+					s->total_size, sizeof(int32));
+				if (s->scope_ring == NULL || s->scope_scratch == NULL) {
+					free(s->scope_ring);
+					free(s->scope_scratch);
+					s->scope_ring = NULL;
+					s->scope_scratch = NULL;
+					return -XMP_ERROR_SYSTEM;
+				}
+			}
+			s->scope_write = 0;
+			s->scope_available = 0;
+			s->scope_enabled = 1;
+		} else {
+			s->scope_enabled = 0;
+			free(s->scope_ring);
+			free(s->scope_scratch);
+			s->scope_ring = NULL;
+			s->scope_scratch = NULL;
+		}
+		ret = 0;
+		break;
 	}
 
 	return ret;
@@ -610,8 +675,14 @@ int xmp_get_player__(xmp_context opaque, int parm)
 			}
 		}
 		break;
+	case XMP_PLAYER_READ_EVENT_TYPE:
+		ret = m->read_event_type;
+		break;
 	case XMP_PLAYER_VOICES:
 		ret = s->numvoc;
+		break;
+	case XMP_PLAYER_CHANNEL_SCOPE:
+		ret = s->scope_enabled;
 		break;
 	}
 

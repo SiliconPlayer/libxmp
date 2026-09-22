@@ -83,6 +83,14 @@ extern "C" {
 #define XMP_PLAYER_MODE 	11	/* Player personality */
 #define XMP_PLAYER_MIXER_TYPE	12	/* Current mixer (read only) */
 #define XMP_PLAYER_VOICES	13	/* Maximum number of mixer voices */
+#define XMP_PLAYER_CHANNEL_SCOPE 14	/* Per-channel scope capture (SiliconPlayer) */
+#define XMP_PLAYER_READ_EVENT_TYPE 15	/* Event dialect used by the module (SiliconPlayer, read only) */
+
+/* Event dialects reported by XMP_PLAYER_READ_EVENT_TYPE */
+#define XMP_READ_EVENT_MOD	0	/* ProTracker style */
+#define XMP_READ_EVENT_FT2	1	/* FastTracker II style */
+#define XMP_READ_EVENT_ST3	2	/* Scream Tracker 3 style */
+#define XMP_READ_EVENT_IT	3	/* Impulse Tracker style */
 
 /* interpolation types */
 #define XMP_INTERP_NEAREST	0	/* Nearest neighbor */
@@ -396,6 +404,7 @@ LIBXMP_EXPORT int         xmp_seek_time       (xmp_context, int);
 LIBXMP_EXPORT int         xmp_seek_time_frame (xmp_context, int);
 LIBXMP_EXPORT int         xmp_channel_mute    (xmp_context, int, int);
 LIBXMP_EXPORT int         xmp_channel_vol     (xmp_context, int, int);
+LIBXMP_EXPORT int         xmp_get_channel_scope(xmp_context, int, float *, int);
 LIBXMP_EXPORT int         xmp_set_player      (xmp_context, int, int);
 LIBXMP_EXPORT int         xmp_get_player      (xmp_context, int);
 LIBXMP_EXPORT int         xmp_set_instrument_path (xmp_context, const char *);
