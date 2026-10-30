@@ -408,6 +408,8 @@ LIBXMP_EXPORT int         xmp_seek_time_frame (xmp_context, int);
 LIBXMP_EXPORT int         xmp_channel_mute    (xmp_context, int, int);
 LIBXMP_EXPORT int         xmp_channel_vol     (xmp_context, int, int);
 LIBXMP_EXPORT int         xmp_get_channel_scope(xmp_context, int, float *, int);
+LIBXMP_EXPORT int         xmp_get_channel_scope_write_pos(xmp_context);
+LIBXMP_EXPORT int         xmp_get_channel_scope_delta(xmp_context, int, float *, int, int);
 LIBXMP_EXPORT int         xmp_set_player      (xmp_context, int, int);
 LIBXMP_EXPORT int         xmp_get_player      (xmp_context, int);
 LIBXMP_EXPORT int         xmp_set_instrument_path (xmp_context, const char *);

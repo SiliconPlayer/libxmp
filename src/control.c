@@ -424,6 +424,49 @@ int xmp_get_channel_scope(xmp_context opaque, int chn, float *dest, int count)
 	return count;
 }
 
+/* SiliconPlayer: modular write position for append-based scope consumers. */
+int xmp_get_channel_scope_write_pos(xmp_context opaque)
+{
+	struct context_data *ctx = (struct context_data *)opaque;
+	struct mixer_data *s = &ctx->s;
+
+	if (ctx->state < XMP_STATE_PLAYING)
+		return 0;
+
+	return s->scope_write;
+}
+
+/* SiliconPlayer: copy the wrapped scope span [fromPos, toPos) ascending for
+ * one channel ring, return the number of frames copied. */
+int xmp_get_channel_scope_delta(xmp_context opaque, int chn, float *dest,
+				int fromPos, int toPos)
+{
+	struct context_data *ctx = (struct context_data *)opaque;
+	struct mixer_data *s = &ctx->s;
+	const float *ring;
+	int span, first;
+
+	if (ctx->state < XMP_STATE_PLAYING || dest == NULL || chn < 0 ||
+	    chn >= XMP_MAX_CHANNELS || s->scope_ring == NULL)
+		return 0;
+
+	span = ((toPos - fromPos) % XMP_SCOPE_RING_FRAMES +
+		XMP_SCOPE_RING_FRAMES) % XMP_SCOPE_RING_FRAMES;
+	if (span <= 0)
+		return 0;
+
+	ring = s->scope_ring + (size_t)chn * XMP_SCOPE_RING_FRAMES;
+	first = MIN(span, XMP_SCOPE_RING_FRAMES - (fromPos % XMP_SCOPE_RING_FRAMES));
+
+	memcpy(dest, ring + (fromPos % XMP_SCOPE_RING_FRAMES),
+	       (size_t)first * sizeof(float));
+	if (span > first)
+		memcpy(dest + first, ring, (size_t)(span - first) * sizeof(float));
+
+	return span;
+}
+
+
 #ifdef USE_VERSIONED_SYMBOLS
 LIBXMP_BEGIN_DECLS /* no name-mangling */
 LIBXMP_EXPORT_VERSIONED extern int xmp_set_player_v40__(xmp_context, int, int) LIBXMP_ATTRIB_SYMVER("xmp_set_player@XMP_4.0");
