@@ -125,3 +125,8 @@ CMakeCache.txt
 cmake_install.cmake
 libxmp-config-version.cmake.autotools
 libxmp-lite-config-version.cmake.autotools
+
+# Out-of-tree builds from SiliconPlayer dependency scripts
+build_android_*/
+build_desktop_*/
+build_host/
