@@ -436,6 +436,36 @@ int xmp_get_channel_scope_write_pos(xmp_context opaque)
 	return s->scope_write;
 }
 
+/* SiliconPlayer: newest ring position whose audio has already been handed to
+ * the caller. A tick is mixed as a whole before any of it is copied out, so
+ * the raw write position runs up to one tick ahead of the delivered stream;
+ * subtracting the undelivered tail keeps appends frame-aligned with output. */
+int xmp_get_channel_scope_delivered_pos(xmp_context opaque)
+{
+	struct context_data *ctx = (struct context_data *)opaque;
+	struct mixer_data *s = &ctx->s;
+	struct player_data *p = &ctx->p;
+	int bytes_per_frame, pending, pos;
+
+	if (ctx->state < XMP_STATE_PLAYING)
+		return 0;
+
+	bytes_per_frame = s->output_chn * s->sample_size;
+	if (bytes_per_frame <= 0)
+		return s->scope_write;
+
+	pending = p->buffer_data.in_size - p->buffer_data.consumed;
+	if (pending < 0)
+		pending = 0;
+	pending /= bytes_per_frame;
+
+	pos = (s->scope_write - pending) % XMP_SCOPE_RING_FRAMES;
+	if (pos < 0)
+		pos += XMP_SCOPE_RING_FRAMES;
+
+	return pos;
+}
+
 /* SiliconPlayer: copy the wrapped scope span [fromPos, toPos) ascending for
  * one channel ring, return the number of frames copied. */
 int xmp_get_channel_scope_delta(xmp_context opaque, int chn, float *dest,

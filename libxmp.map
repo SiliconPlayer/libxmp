@@ -86,5 +86,6 @@ SILICONPLAYER_1 {
   global:
     xmp_get_channel_scope;
     xmp_get_channel_scope_write_pos;
+    xmp_get_channel_scope_delivered_pos;
     xmp_get_channel_scope_delta;
 } XMP_4.7;
